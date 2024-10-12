@@ -1,7 +1,7 @@
 # Create VPC
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "3.0.0"
+  version = ">= 3.14"
 
   name = "my-vpc"
   cidr = "10.0.0.0/16"
@@ -12,13 +12,13 @@ module "vpc" {
 }
 
 # Create ECS cluster
-resource "aws_ecs_cluster" "my_cluster" {
+resource "aws_ecs_cluster" "nginx_cluster" {
   name = var.ecs_cluster_name
 }
 
 # Create Security Group
-resource "aws_security_group" "ecs_security_group" {
-  name        = "ecs-sg"
+resource "aws_security_group" "nginx_ecs_sg" {
+  name        = var.ecs_sg_name  # This will be set to "nginx-ecs-sg"
   description = "Allow HTTP inbound traffic"
   vpc_id      = module.vpc.vpc_id
 
@@ -61,13 +61,13 @@ resource "aws_ecs_task_definition" "nginx_task" {
 # ECS Service to run the nginx task
 resource "aws_ecs_service" "nginx_service" {
   name            = var.service_name
-  cluster         = aws_ecs_cluster.my_cluster.id
+  cluster         = aws_ecs_cluster.nginx_cluster.id
   task_definition = aws_ecs_task_definition.nginx_task.arn
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
   network_configuration {
     subnets         = module.vpc.public_subnets
-    security_groups = [aws_security_group.ecs_security_group.id]
+    security_groups = [aws_security_group.nginx_ecs_sg.id]
     assign_public_ip = true
   }
 }
