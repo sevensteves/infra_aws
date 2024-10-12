@@ -2,8 +2,8 @@
 
 This repository contains the Terraform code used to provision AWS infrastructure, including an ECS cluster, VPC, and security groups. It is designed to automate the deployment of Dockerized web services using ECS Fargate and integrates with GitHub Actions for continuous delivery.
 
-![Terraform](https://img.shields.io/badge/Terraform-v1.9.7-blue)
-![GitHub Actions](https://img.shields.io/github/actions/workflow/status/your-repo/main.yml?branch=main)
+![Terraform](https://img.shields.io/badge/Terraform-v1.9.7-blue)\
+[![Terraform AWS Infrastructure](https://github.com/sevensteves/infra_aws/actions/workflows/terraform.yml/badge.svg)](https://github.com/sevensteves/infra_aws/actions/workflows/terraform.yml)\
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ## Table of Contents
