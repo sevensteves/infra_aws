@@ -18,7 +18,7 @@ resource "aws_ecs_cluster" "nginx_cluster" {
 
 # Create Security Group
 resource "aws_security_group" "nginx_ecs_sg" {
-  name        = var.ecs_sg_name  # This will be set to "nginx-ecs-sg"
+  name        = var.ecs_sg_name
   description = "Allow HTTP inbound traffic"
   vpc_id      = module.vpc.vpc_id
 
@@ -37,6 +37,11 @@ resource "aws_security_group" "nginx_ecs_sg" {
   }
 }
 
+# Use the existing IAM role via data source
+data "aws_iam_role" "ecs_task_execution_role" {
+  name = "ecsTaskExecutionRole"  # Use the existing IAM role by name
+}
+
 # ECS Task Definition for nginx
 resource "aws_ecs_task_definition" "nginx_task" {
   family                   = "nginx-task"
@@ -44,7 +49,10 @@ resource "aws_ecs_task_definition" "nginx_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  
+  # Use the existing ecsTaskExecutionRole
+  execution_role_arn       = data.aws_iam_role.ecs_task_execution_role.arn
+
   container_definitions    = jsonencode([{
     name      = "nginx"
     image     = "nginx:latest"  # Use public image from Docker Hub
@@ -72,23 +80,3 @@ resource "aws_ecs_service" "nginx_service" {
   }
 }
 
-# IAM role for ECS task execution (required for Fargate)
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRole"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
-      }
-    }]
-  })
-}
-
-# Attach policies for ECS task execution
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
