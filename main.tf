@@ -12,12 +12,12 @@ module "vpc" {
 }
 
 # Create ECS cluster
-resource "aws_ecs_cluster" "nginx_cluster" {
+resource "aws_ecs_cluster" "sevensteves_cluster" {
   name = var.ecs_cluster_name
 }
 
 # Create Security Group
-resource "aws_security_group" "nginx_ecs_sg" {
+resource "aws_security_group" "sevensteves_ecs_sg" {
   name        = var.ecs_sg_name
   description = "Allow HTTP inbound traffic"
   vpc_id      = module.vpc.vpc_id
@@ -42,41 +42,17 @@ data "aws_iam_role" "ecs_task_execution_role" {
   name = "ecsTaskExecutionRole"  # Use the existing IAM role by name
 }
 
-# ECS Task Definition for nginx
-resource "aws_ecs_task_definition" "nginx_task" {
-  family                   = "nginx-task"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
-  
-  # Use the existing ecsTaskExecutionRole
-  execution_role_arn       = data.aws_iam_role.ecs_task_execution_role.arn
-
-  container_definitions    = jsonencode([{
-    name      = "nginx"
-    image     = "nginx:latest"  # Use public image from Docker Hub
-    cpu       = 256
-    memory    = 512
-    essential = true
-    portMappings = [{
-      containerPort = 80
-      hostPort      = 80
-    }]
-  }])
-}
-
-# ECS Service to run the nginx task
-resource "aws_ecs_service" "nginx_service" {
-  name            = var.service_name
-  cluster         = aws_ecs_cluster.nginx_cluster.id
-  task_definition = aws_ecs_task_definition.nginx_task.arn
-  desired_count   = var.desired_count
-  launch_type     = "FARGATE"
-  network_configuration {
-    subnets         = module.vpc.public_subnets
-    security_groups = [aws_security_group.nginx_ecs_sg.id]
-    assign_public_ip = true
+# Uploading the infrastructure details to S3 as config.json
+resource "null_resource" "upload_config" {
+  provisioner "local-exec" {
+    command = <<EOT
+      echo '{
+        "ecs_cluster_arn": "${aws_ecs_cluster.sevensteves_cluster.arn}",
+        "vpc_id": "${module.vpc.vpc_id}",
+        "subnet_ids": ["${join("\",\"", module.vpc.public_subnets)}"],
+        "security_group_id": "${aws_security_group.sevensteves_ecs_sg.id}"
+      }' > config.json
+      aws s3 cp config.json s3://sevensteves-terraform-state-bucket/shared-config/config.json
+    EOT
   }
 }
-
